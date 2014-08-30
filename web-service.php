@@ -1,4 +1,22 @@
 <?php 
+
+/**
+ * ProcessWire web service implementation using template
+ *
+ * Use template URL segment to identify what page should be returned.
+ * All output is generated in JSON format. 
+ *
+ * @copyright Copyright (c) 2014, Christian Esperar
+ * @license http://www.gnu.org/licenses/gpl-2.0.txt GNU General Public License, version 2
+ *
+ * ProcessWire 2.x 
+ * Copyright (C) 2013 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://processwire.com
+ *
+ */
+
 	function constructURL($url_segments) {
 
 		// REMOVE API KEY ON URL PREPARATION
@@ -209,4 +227,3 @@
 	} else {
 		echo 'Invalid secret key';
 	}
-?>
