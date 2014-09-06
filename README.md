@@ -22,13 +22,13 @@ This are the current supported fields. Feel free to edit this part if the field 
 
 ###Template
 * Add a template **web-service** with no other fields and configure it to allow **URL Segments**
-* Add a field name **secret_key**
-* Add a template **configuration** and add the field **secret_key**
+* Add a field name **secret_key** and **site_prefix** (optional)
+* Add a template **configuration** and add the field **secret_key** and **site_prefix** (optional)
 
 ###Page
 All page must be child of the Home
 
-* Add a page with **configuration** as a template and enter your **secret key** to access the content
+* Add a page with **configuration** as a template and enter your **secret key** to access the content and **site_prefix** (optional) you want to remove
 * Add a page with  **web-service** as a template
 
 # Calling
