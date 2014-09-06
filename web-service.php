@@ -29,7 +29,7 @@
 	
 	}
 	
-	function pageToArray(Page $page) {
+	function pageToArray(Page $page, $field_prefix = null) {
 		
 		$protocol  = empty($_SERVER['HTTPS']) ? 'http' : 'https';
 		$domain    = $_SERVER['SERVER_NAME'];
@@ -61,7 +61,10 @@
  
 	  	foreach( $page->template->fieldgroup as $field ) {
 	  		if($field->type instanceof FieldtypeFieldsetOpen) continue;
-	        	$trim_field_name = str_replace('site_', '', $field->name);
+
+	  			// HIDE FIELD PREFIX
+	        	$trim_field_name = str_replace($field_prefix, '', $field->name);
+
 	        	$value = $page->get($field->name); 
 
 	        	// CONSTRUCT DATA FOR REPEATER FIELD
@@ -69,11 +72,11 @@
 	        		// CONVERT STRING TO ARRAY OF REPEATER ID
 	        		$ids = explode("|", $value);
 
-	        		$data = getRepeaterFieldInfo($data, $host, $ids, $trim_field_name);
+	        		$data = getRepeaterFieldInfo($data, $host, $ids, $trim_field_name, $field_prefix);
 	        	} 
 	        	// CONSTRUCT DATA FOR PAGE FIELD
 	        	elseif ( $field->type == 'FieldtypePage' ) {
-	        		$data = getPageFieldInfo($data, $trim_field_name, $value);
+	        		$data = getPageFieldInfo($data, $trim_field_name, $value, $field_prefix);
 	        	} 
 	        	// CONSTRUCT DATA FOR IMAGE FIELD
 	        	elseif ( $field->type == 'FieldtypeImage' ) {
@@ -102,21 +105,21 @@
 	  	
 	}
 	
-	function getPageInfo($id) {
+	function getPageInfo($id, $field_prefix = null) {
 
 		// GET PAGES INFO
 		$page = wire()->pages->get("$id");
-		$page = pageToArray($page);
+		$page = pageToArray($page, $field_prefix);
 		
 		return $page['data'];
 	
 	} 
 
-	function getRepeaterFieldInfo($data, $host, $ids, $trim_field_name) {
+	function getRepeaterFieldInfo($data, $host, $ids, $trim_field_name, $field_prefix = null) {
 
 		foreach ( $ids as $id ) {
 			// GET PAGES INFO
-			$page = getPageInfo($id);
+			$page = getPageInfo($id, $field_prefix);
 
 			foreach ($page as $key => $value) {
 				// CHECK IF REPEATER HAS SET VALUE
@@ -137,14 +140,14 @@
 
 	}
 
-	function getPageFieldInfo($data, $trim_field_name, $id) {
+	function getPageFieldInfo($data, $trim_field_name, $id, $field_prefix = null) {
 
 		// CONVERT STRING TO ARRAY OF PAGE ID
 	    $ids = explode("|", $id);
 	    
 	    foreach ( $ids as $key1 => $value1 ) {
 			// GET PAGES INFO
-			$page = getPageInfo($value1);
+			$page = getPageInfo($value1, $field_prefix);
 
 			foreach ($page as $key2 => $value2) {
 				$data['data'][$trim_field_name][$key1][$key2] = $value2;
@@ -212,6 +215,9 @@
 	elseif ( $input->urlSegment1 === $api->secret_key ) {
 		header('Content-type: application/json');
 		
+		// GET SET FIELD PREFIX
+		$field_prefix = $api->field_prefix;
+
 		// RESERVE WORD FOR HOME PAGE
 		if ( $input->urlSegment2 === "home" ) {
 			$page = $pages->get("/");
@@ -221,7 +227,7 @@
 			$page = $pages->get("$url");
 		}
 
-		$page = pageToArray($page);
+		$page = pageToArray($page, $field_prefix);
 		
 		echo json_encode($page);
 	} else {
