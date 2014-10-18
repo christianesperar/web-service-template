@@ -40,7 +40,7 @@ function pageToArray(Page $page, $field_prefix = null) {
 
 	$outputFormatting = $page->outputFormatting;
 	$page->setOutputFormatting(false);
- 
+
 	// CHECK IF PAGE IS EXISTING AND RETURN 404 STATUS IF NOT
 	if ( ! $page->id ) {
 		$data = array(
@@ -48,7 +48,7 @@ function pageToArray(Page $page, $field_prefix = null) {
 			'statusText' => 'NOT FOUND',
 		);	
 
-    	return $data;
+		return $data;
 	}
 
 	$data = array(
@@ -57,52 +57,63 @@ function pageToArray(Page $page, $field_prefix = null) {
 		'created'    => $page->created,
 		'modified'   => $page->modified,
 		'data'       => array(),
-    );
- 
-  	foreach( $page->template->fieldgroup as $field ) {
-  		if($field->type instanceof FieldtypeFieldsetOpen) continue;
+	);
 
-  			// HIDE FIELD PREFIX
-        	$trim_field_name = str_replace($field_prefix, '', $field->name);
+	foreach( $page->template->fieldgroup as $field ) {
+		if($field->type instanceof FieldtypeFieldsetOpen) continue;
 
-        	$value = $page->get($field->name); 
+			// HIDE FIELD PREFIX
+			$trim_field_name = str_replace($field_prefix, '', $field->name);
 
-        	// CONSTRUCT DATA FOR REPEATER FIELD
-        	if ( $field->type == 'FieldtypeRepeater' ) {
-        		// CONVERT STRING TO ARRAY OF REPEATER ID
-        		$ids = explode("|", $value);
+			$value = $page->get($field->name); 
 
-        		$data = getRepeaterFieldInfo($data, $host, $ids, $trim_field_name, $field_prefix);
-        	} 
-        	// CONSTRUCT DATA FOR PAGE FIELD
-        	elseif ( $field->type == 'FieldtypePage' ) {
-        		$data = getPageFieldInfo($data, $trim_field_name, $value, $field_prefix);
-        	} 
-        	// CONSTRUCT DATA FOR IMAGE FIELD
-        	elseif ( $field->type == 'FieldtypeImage' ) {
-        		$images = $field->type->sleepValue($page, $field, $value);
+			switch ( $field->type ) {
+				// CONSTRUCT DATA FOR REPEATER FIELD
+				case 'FieldtypeRepeater':
+					// CONVERT STRING TO ARRAY OF REPEATER ID
+					$ids = explode("|", $value);
 
-        		$data = getImageFieldInfo($data, $host, $url, $id, $trim_field_name, $images);
-        	}
-        	// CONSTRUCT DATA FOR COMMENTS FIELD
-        	elseif ( $field->type == 'FieldtypeComments' ) {
-        		// GET ALL LIST OF ID
-        		$ids = str_replace('|', ',', $value);
-        		
-        		$comments = $field->type->sleepValue($page, $field, $value);
+					$data = getRepeaterFieldInfo($data, $host, $ids, $trim_field_name, $field_prefix);
 
-        		$data = getCommentsFieldInfo($data, $ids, $trim_field_name, $comments);
-        	}
-        	// FALLBACK
-        	else {
-        		$data['data'][$trim_field_name] = $field->type->sleepValue($page, $field, $value);
-        	}
-  	}
- 
-  	$page->setOutputFormatting($outputFormatting);
+					break;
 
-  	return $data;
-  	
+				// CONSTRUCT DATA FOR PAGE FIELD
+				case 'FieldtypePage':
+					$data = getPageFieldInfo($data, $trim_field_name, $value, $field_prefix);
+
+					break;
+
+				// CONSTRUCT DATA FOR IMAGE FIELD
+				case 'FieldtypeImage':
+					$images = $field->type->sleepValue($page, $field, $value);
+
+					$data = getImageFieldInfo($data, $host, $url, $id, $trim_field_name, $images);
+
+					break;
+
+				// CONSTRUCT DATA FOR COMMENTS FIELD
+				case 'FieldtypeComments':
+					// GET ALL LIST OF ID
+					$ids = str_replace('|', ',', $value);
+
+					$comments = $field->type->sleepValue($page, $field, $value);
+
+					$data = getCommentsFieldInfo($data, $ids, $trim_field_name, $comments);
+
+					break;
+
+				// FALLBACK      		
+				default:
+					$data['data'][$trim_field_name] = $field->type->sleepValue($page, $field, $value);
+
+					break;
+			}
+	}
+
+	$page->setOutputFormatting($outputFormatting);
+
+	return $data;
+
 }
 	
 function getPageInfo($id, $field_prefix = null) {
@@ -143,16 +154,16 @@ function getRepeaterFieldInfo($data, $host, $ids, $trim_field_name, $field_prefi
 function getPageFieldInfo($data, $trim_field_name, $id, $field_prefix = null) {
 
 	// CONVERT STRING TO ARRAY OF PAGE ID
-    $ids = explode("|", $id);
-    
-    foreach ( $ids as $key1 => $value1 ) {
+	$ids = explode("|", $id);
+
+	foreach ( $ids as $key1 => $value1 ) {
 		// GET PAGES INFO
 		$page = getPageInfo($value1, $field_prefix);
 
 		foreach ($page as $key2 => $value2) {
 			$data['data'][$trim_field_name][$key1][$key2] = $value2;
 		}
-    }
+	}
 
 	return $data;
 
@@ -184,12 +195,12 @@ function getCommentsFieldInfo($data, $ids, $trim_field_name, $comments) {
 
 	// GET ALL THE RATINGS AND AVERAGE
 	while ( $row = $result->fetch_assoc() ) {
-    	$comment_id = $row['comment_id'];
-    	$rating     = $row['rating'];
-    	$total      = $total + $row['rating'];
+		$comment_id = $row['comment_id'];
+		$rating     = $row['rating'];
+		$total      = $total + $row['rating'];
 
 		$ratings[$comment_id] = $rating;
-    }
+	}
 
 	// ITERATE THROUGHT THE COMMENT LIBRRARIES AND INSERT THE RATINGS
 	foreach ( $comments as $key => $value ) {
