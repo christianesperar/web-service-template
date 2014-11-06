@@ -15,6 +15,9 @@ This are the current supported fields. Feel free to edit this part if the field 
 * Text
 * Textarea
 
+# Supported Version
+This template is tested on ProcessWire version 2.4, 2.5.
+
 # Supported Modules
 * CommentRatings
 
@@ -38,7 +41,7 @@ You can call specific page by **http://root/web_service_url/secret_key/page_url*
 * Home must be called by using **home** as **page_url** (ex: **http://root/web-service/12345/home**)
 
 # Live Implementation
-Using ProcessWire on managing content and Phalcon for getting the data. Our team is currently develop of proof of concept on the new   [MoneyMax PH](http://pocph.compargo.com/) design.
+Using ProcessWire on managing content and Phalcon for getting the data. Our team is currently develop of proof of concept on the new   [MoneyMax PH](http://pocph.compargo.com/) design and on [searcHMO](http://54.200.152.46/searcHMO/).
 
 #Tips
 Increase the maximum URL segment to avoid future error. You may modify this setting in your /site/config.php file and add $config->maxUrlSegments = 10 on the end of the line.
