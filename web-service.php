@@ -170,11 +170,9 @@ function getPageFieldInfo($data, $trim_field_name, $id, $field_prefix = null) {
 }
 
 function getImageFieldInfo($data, $host, $url, $id, $trim_field_name, $images) {
-
-	// SINGLE IMAGE
-	if ( count($images) == 1 ) {
-		$data['data'][$trim_field_name]['path']        = $host . $url . $id . "/" . $images[0]['data'];
-		$data['data'][$trim_field_name]['description'] = $images[0]['description'];
+	foreach ( $images as $key => $value ) {
+		$data['data'][$trim_field_name][$key]['path']        = $host . $url . $id . "/" . $value['data'];
+		$data['data'][$trim_field_name][$key]['description'] = $value['description'];
 	}
 
 	return $data;
