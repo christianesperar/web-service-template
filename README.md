@@ -43,7 +43,9 @@ You can call specific page by **http://root/web_service_url/secret_key/page_url*
 * Home must be called by using **home** as **page_url** (ex: **http://root/web-service/12345/home**)
 
 # Live Implementation
-Using ProcessWire on managing content and Phalcon for getting the data. Our team is developed a proof of concept on the new MoneyMax PH design and on searcHMO.
+Some site use this template is:
+
+[N-340 Website](http://n-340.org/) - [JSON](http://n-340.org/api/app/json/)
 
 #Tips
 Increase the maximum URL segment to avoid future error. You may modify this setting in your /site/config.php file and add $config->maxUrlSegments = 10 on the end of the line.
