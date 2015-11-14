@@ -16,7 +16,7 @@ This are the current supported fields. Feel free to edit this part if the field 
 * Textarea
 
 # Supported Version
-This template is tested on ProcessWire version 2.4, 2.5, 2.6.
+This template is tested on ProcessWire version 2.4 up to 2.7.
 
 # Supported Modules
 This are the current supported fields. Feel free to edit this part if the modules you are using is supported. 
