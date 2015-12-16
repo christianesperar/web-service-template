@@ -222,7 +222,9 @@ if ( ! $api->secret_key ) {
 }   
 // CHECK IF SET API ON CONFIGURATION IS MATCH ON GIVEN KEY ON URL SEGMENT
 elseif ( $input->urlSegment1 === $api->secret_key ) {
-    header('Content-type: application/json');
+    $urlSegments = $input->urlSegments;
+
+    if ( !$config->debug ) header('Content-type: application/json');
     
     // GET SET FIELD PREFIX
     $field_prefix = $api->field_prefix;
@@ -231,7 +233,7 @@ elseif ( $input->urlSegment1 === $api->secret_key ) {
     if ( $input->urlSegment2 === "home" ) {
         $page = $pages->get("/");
     } else {
-        $url = constructURL($input->urlSegments);
+        $url = constructURL($urlSegments);
         
         $page = $pages->get("$url");
     }
