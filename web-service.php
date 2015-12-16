@@ -121,8 +121,8 @@ function getPageInfo($id, $field_prefix = null) {
     // GET PAGES INFO
     $page = wire()->pages->get("$id");
     $page = pageToArray($page, $field_prefix);
-    
-    return $page['data'];
+
+    return isset( $page['data'] ) ? $page['data'] : null;
 
 }
 
@@ -132,16 +132,18 @@ function getRepeaterFieldInfo($data, $host, $ids, $trim_field_name, $field_prefi
         // GET PAGES INFO
         $page = getPageInfo($id, $field_prefix);
 
-        foreach ($page as $key => $value) {
-            // CHECK IF REPEATER HAS SET VALUE
-            if ( $value ) {
-                // IF REPEATER FIELD IS IMAGE
-                if ($key == 'image') {
-                    $data['data'][$trim_field_name][$id] = $value;
-                } 
-                // FALLBACK
-                else {
-                    $data['data'][$trim_field_name][$id][$key] = $value;
+        if ( $page ) {
+            foreach ($page as $key => $value) {
+                // CHECK IF REPEATER HAS SET VALUE
+                if ( $value ) {
+                    // IF REPEATER FIELD IS IMAGE
+                    if ($key == 'image') {
+                        $data['data'][$trim_field_name][$id] = $value;
+                    } 
+                    // FALLBACK
+                    else {
+                        $data['data'][$trim_field_name][$id][$key] = $value;
+                    }
                 }
             }
         }
@@ -160,8 +162,10 @@ function getPageFieldInfo($data, $trim_field_name, $id, $field_prefix = null) {
         // GET PAGES INFO
         $page = getPageInfo($value1, $field_prefix);
 
-        foreach ($page as $key2 => $value2) {
-            $data['data'][$trim_field_name][$key1][$key2] = $value2;
+        if ( $page ) {
+            foreach ($page as $key2 => $value2) {
+                $data['data'][$trim_field_name][$key1][$key2] = $value2;
+            }
         }
     }
 
