@@ -29,7 +29,7 @@ function constructURL($url_segments) {
 
 }
     
-function pageToArray(Page $page, $field_prefix = null) {
+function pageToArray(Page $page, $field_prefix = null, $data = array()) {
         
     $protocol  = empty($_SERVER['HTTPS']) ? 'http' : 'https';
     $domain    = $_SERVER['SERVER_NAME'];
@@ -56,7 +56,7 @@ function pageToArray(Page $page, $field_prefix = null) {
         'statusText' => 'OK',
         'created'    => $page->created,
         'modified'   => $page->modified,
-        'data'       => array(),
+        'data'       => getAdditionalPageField($page, $data),
     );
 
     foreach( $page->template->fieldgroup as $field ) {
@@ -72,7 +72,7 @@ function pageToArray(Page $page, $field_prefix = null) {
                 case 'FieldtypeRepeater':
                     // CONVERT STRING TO ARRAY OF REPEATER ID
                     $ids = explode("|", $value);
-
+                    
                     $data = getRepeaterFieldInfo($data, $host, $ids, $trim_field_name, $field_prefix);
 
                     break;
@@ -116,11 +116,11 @@ function pageToArray(Page $page, $field_prefix = null) {
 
 }
     
-function getPageInfo($id, $field_prefix = null) {
+function getPageInfo($id, $field_prefix = null, $data = array()) {
 
     // GET PAGES INFO
     $page = wire()->pages->get("$id");
-    $page = pageToArray($page, $field_prefix);
+    $page = pageToArray($page, $field_prefix, $data);
 
     return isset( $page['data'] ) ? $page['data'] : null;
 
@@ -160,7 +160,7 @@ function getPageFieldInfo($data, $trim_field_name, $id, $field_prefix = null) {
 
     foreach ( $ids as $key1 => $value1 ) {
         // GET PAGES INFO
-        $page = getPageInfo($value1, $field_prefix);
+        $page = getPageInfo($value1, $field_prefix, array('path'));
 
         if ( $page ) {
             foreach ($page as $key2 => $value2) {
@@ -218,6 +218,18 @@ function getCommentsFieldInfo($data, $ids, $trim_field_name, $comments) {
 
 }
 
+function getAdditionalPageField($page, $fields) {
+    
+    $data = array();
+
+    foreach ($fields as $field) {
+        $data[$field] = $page->$field;
+    }
+
+    return $data;
+
+}
+
 // GET API KEY SET ON ADMIN CONFIGURATION
 $api = $pages->get('/configuration');
 
@@ -242,7 +254,7 @@ elseif ( $input->urlSegment1 === $api->secret_key ) {
         $page = $pages->get("$url");
     }
 
-    $page = pageToArray($page, $field_prefix);
+    $page = pageToArray($page, $field_prefix, array('path'));
     
     echo json_encode($page);
 } else {
