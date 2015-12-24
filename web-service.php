@@ -158,13 +158,13 @@ function getPageFieldInfo($data, $trim_field_name, $id, $field_prefix = null) {
     // CONVERT STRING TO ARRAY OF PAGE ID
     $ids = explode("|", $id);
 
-    foreach ( $ids as $key1 => $value1 ) {
+    foreach ( $ids as $id ) {
         // GET PAGES INFO
-        $page = getPageInfo($value1, $field_prefix, array('path'));
+        $page = getPageInfo($id, $field_prefix, array('path'));
 
         if ( $page ) {
-            foreach ($page as $key2 => $value2) {
-                $data['data'][$trim_field_name][$key1][$key2] = $value2;
+            foreach ($page as $key => $value) {
+                $data['data'][$trim_field_name][$key] = $value;
             }
         }
     }
