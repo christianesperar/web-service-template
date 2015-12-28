@@ -17,217 +17,221 @@
  *
  */
 
-function constructURL($url_segments) {
+class WebService
+{
+    protected $host;
+    protected $fieldPrefix;
 
-    // REMOVE API KEY ON URL PREPARATION
-    unset($url_segments[1]);
-    
-    // COMBINE THE SEGMENT TO CONSTRUCT INTO URL FORMAT
-    $url = implode("/", $url_segments);
+    public function __construct($fieldPrefix)
+    {
+        $this->host = $this->getHost();
+        $this->fieldPrefix = $fieldPrefix;
+    }
 
-    return "/" . $url . "/";
+    public function getHost() {
+        $protocol = empty($_SERVER['HTTPS']) ? 'http' : 'https';
+        $domain = $_SERVER['SERVER_NAME'];
 
-}
-    
-function pageToArray(Page $page, $field_prefix = null, $data = array()) {
+        return $protocol . "://" . $domain;
+    }
+
+    public function constructURL($urlSegments) {
+        // REMOVE API KEY ON URL PREPARATION
+        unset($urlSegments[1]);
         
-    $protocol  = empty($_SERVER['HTTPS']) ? 'http' : 'https';
-    $domain    = $_SERVER['SERVER_NAME'];
+        // COMBINE THE SEGMENT TO CONSTRUCT INTO URL FORMAT
+        $url = implode("/", $urlSegments);
 
-    $id   = $page->id;
-    $host = $protocol . "://" . $domain;
-    $url  = wire()->config->urls->files;
+        return "/" . $url . "/";
+    }
 
-    $outputFormatting = $page->outputFormatting;
-    $page->setOutputFormatting(false);
+    public function pageToArray(Page $page, $data = array()) {
+        $url = wire()->config->urls->files;
 
-    // CHECK IF PAGE IS EXISTING AND RETURN 404 STATUS IF NOT
-    if ( ! $page->id ) {
+        $outputFormatting = $page->outputFormatting;
+        $page->setOutputFormatting(false);
+
+        $id = $page->id;
+
+        // CHECK IF PAGE IS EXISTING AND RETURN 404 STATUS IF NOT
+        if ( ! $id ) {
+            return array(
+                'status'     => 404,
+                'statusText' => 'NOT FOUND',
+            );
+        }
+
         $data = array(
-            'status'     => 404,
-            'statusText' => 'NOT FOUND',
-        );  
+            'status'     => 200,
+            'statusText' => 'OK',
+            'created'    => $page->created,
+            'modified'   => $page->modified,
+            'data'       => $this->getAdditionalPageField($page, $data),
+        );
+
+        foreach( $page->template->fieldgroup as $field ) {
+            if($field->type instanceof FieldtypeFieldsetOpen) continue;
+
+                // HIDE FIELD PREFIX
+                $trimFieldName = str_replace($this->fieldPrefix, '', $field->name);
+
+                $value = $page->get($field->name); 
+
+                switch ( $field->type ) {
+                    // CONSTRUCT DATA FOR REPEATER FIELD
+                    case 'FieldtypeRepeater':
+                        // CONVERT STRING TO ARRAY OF REPEATER ID
+                        $ids = explode("|", $value);
+                        
+                        $data = $this->getRepeaterFieldInfo($data, $ids, $trimFieldName);
+
+                        break;
+
+                    // CONSTRUCT DATA FOR PAGE FIELD
+                    case 'FieldtypePage':
+                        $data = $this->getPageFieldInfo($data, $trimFieldName, $value);
+
+                        break;
+
+                    // CONSTRUCT DATA FOR IMAGE FIELD
+                    case 'FieldtypeImage':
+                        $images = $field->type->sleepValue($page, $field, $value);
+
+                        $data = $this->getImageFieldInfo($data, $url, $id, $trimFieldName, $images);
+
+                        break;
+
+                    // CONSTRUCT DATA FOR COMMENTS FIELD
+                    case 'FieldtypeComments':
+                        // GET ALL LIST OF ID
+                        $ids = str_replace('|', ',', $value);
+
+                        $comments = $field->type->sleepValue($page, $field, $value);
+
+                        $data = $this->getCommentsFieldInfo($data, $ids, $trimFieldName, $comments);
+
+                        break;
+
+                    // FALLBACK             
+                    default:
+                        $data['data'][$trimFieldName] = $field->type->sleepValue($page, $field, $value);
+
+                        break;
+                }
+        }
+
+        $page->setOutputFormatting($outputFormatting);
 
         return $data;
     }
 
-    $data = array(
-        'status'     => 200,
-        'statusText' => 'OK',
-        'created'    => $page->created,
-        'modified'   => $page->modified,
-        'data'       => getAdditionalPageField($page, $data),
-    );
+    public function getPageInfo($id, $data = array()) {
+        // GET PAGES INFO
+        $page = wire()->pages->get("$id");
+        $page = $this->pageToArray($page, $data);
 
-    foreach( $page->template->fieldgroup as $field ) {
-        if($field->type instanceof FieldtypeFieldsetOpen) continue;
-
-            // HIDE FIELD PREFIX
-            $trim_field_name = str_replace($field_prefix, '', $field->name);
-
-            $value = $page->get($field->name); 
-
-            switch ( $field->type ) {
-                // CONSTRUCT DATA FOR REPEATER FIELD
-                case 'FieldtypeRepeater':
-                    // CONVERT STRING TO ARRAY OF REPEATER ID
-                    $ids = explode("|", $value);
-                    
-                    $data = getRepeaterFieldInfo($data, $host, $ids, $trim_field_name, $field_prefix);
-
-                    break;
-
-                // CONSTRUCT DATA FOR PAGE FIELD
-                case 'FieldtypePage':
-                    $data = getPageFieldInfo($data, $trim_field_name, $value, $field_prefix);
-
-                    break;
-
-                // CONSTRUCT DATA FOR IMAGE FIELD
-                case 'FieldtypeImage':
-                    $images = $field->type->sleepValue($page, $field, $value);
-
-                    $data = getImageFieldInfo($data, $host, $url, $id, $trim_field_name, $images);
-
-                    break;
-
-                // CONSTRUCT DATA FOR COMMENTS FIELD
-                case 'FieldtypeComments':
-                    // GET ALL LIST OF ID
-                    $ids = str_replace('|', ',', $value);
-
-                    $comments = $field->type->sleepValue($page, $field, $value);
-
-                    $data = getCommentsFieldInfo($data, $ids, $trim_field_name, $comments);
-
-                    break;
-
-                // FALLBACK             
-                default:
-                    $data['data'][$trim_field_name] = $field->type->sleepValue($page, $field, $value);
-
-                    break;
-            }
+        return isset( $page['data'] ) ? $page['data'] : null;
     }
 
-    $page->setOutputFormatting($outputFormatting);
+    public function getRepeaterFieldInfo($data, $ids, $trimFieldName) {
+        foreach ( $ids as $id ) {
+            // GET PAGES INFO
+            $page = $this->getPageInfo($id);
 
-    return $data;
-
-}
-    
-function getPageInfo($id, $field_prefix = null, $data = array()) {
-
-    // GET PAGES INFO
-    $page = wire()->pages->get("$id");
-    $page = pageToArray($page, $field_prefix, $data);
-
-    return isset( $page['data'] ) ? $page['data'] : null;
-
-}
-
-function getRepeaterFieldInfo($data, $host, $ids, $trim_field_name, $field_prefix = null) {
-
-    foreach ( $ids as $id ) {
-        // GET PAGES INFO
-        $page = getPageInfo($id, $field_prefix);
-
-        if ( $page ) {
-            foreach ($page as $key => $value) {
-                // CHECK IF REPEATER HAS SET VALUE
-                if ( $value ) {
-                    // IF REPEATER FIELD IS IMAGE
-                    if ($key == 'image') {
-                        $data['data'][$trim_field_name][$id] = $value;
-                    } 
-                    // FALLBACK
-                    else {
-                        $data['data'][$trim_field_name][$id][$key] = $value;
+            if ( $page ) {
+                foreach ($page as $key => $value) {
+                    // CHECK IF REPEATER HAS SET VALUE
+                    if ( $value ) {
+                        // IF REPEATER FIELD IS IMAGE
+                        if ($key == 'image') {
+                            $data['data'][$trimFieldName][$id] = $value;
+                        } 
+                        // FALLBACK
+                        else {
+                            $data['data'][$trimFieldName][$id][$key] = $value;
+                        }
                     }
                 }
             }
         }
+
+        return $data;
     }
 
-    return $data;
+    public function getPageFieldInfo($data, $trimFieldName, $id) {
+        // CONVERT STRING TO ARRAY OF PAGE ID
+        $ids = explode("|", $id);
 
-}
+        foreach ( $ids as $id ) {
+            // GET PAGES INFO
+            $page = $this->getPageInfo($id, ['path']);
 
-function getPageFieldInfo($data, $trim_field_name, $id, $field_prefix = null) {
-
-    // CONVERT STRING TO ARRAY OF PAGE ID
-    $ids = explode("|", $id);
-
-    foreach ( $ids as $id ) {
-        // GET PAGES INFO
-        $page = getPageInfo($id, $field_prefix, array('path'));
-
-        if ( $page ) {
-            foreach ($page as $key => $value) {
-                $data['data'][$trim_field_name][$key] = $value;
+            if ( $page ) {
+                foreach ($page as $key => $value) {
+                    $data['data'][$trimFieldName][$key] = $value;
+                }
             }
         }
+
+        return $data;
     }
 
-    return $data;
+    public function getImageFieldInfo($data, $url, $id, $trimFieldName, $images) {
+        foreach ( $images as $key => $value ) {
+            $data['data'][$trimFieldName][$key] = array(
+                'path'        => $this->host . $url . $id . "/" . $value['data'],
+                'description' => $value['description']
+            );
+        }
 
-}
+        return $data;
 
-function getImageFieldInfo($data, $host, $url, $id, $trim_field_name, $images) {
-    foreach ( $images as $key => $value ) {
-        $data['data'][$trim_field_name][$key]['path']        = $host . $url . $id . "/" . $value['data'];
-        $data['data'][$trim_field_name][$key]['description'] = $value['description'];
     }
 
-    return $data;
+    public function getCommentsFieldInfo($data, $ids, $trimFieldName, $comments) {
 
-}
+        $total = 0;
 
-function getCommentsFieldInfo($data, $ids, $trim_field_name, $comments) {
+        $result = wire('db')->query(
+            "
+              SELECT comment_id, rating 
+              FROM CommentRatings 
+              WHERE comment_id IN ({$ids})
+            "
+        );
 
-    $total = 0;
+        // GET ALL THE RATINGS AND AVERAGE
+        while ( $row = $result->fetch_assoc() ) {
+            $commentID = $row['comment_id'];
+            $rating = $row['rating'];
+            $total  = $total + $row['rating'];
 
-    $result = wire('db')->query(
-        "
-          SELECT comment_id, rating 
-          FROM CommentRatings 
-          WHERE comment_id IN ({$ids})
-        "
-    );
+            $ratings[$commentID] = $rating;
+        }
 
-    // GET ALL THE RATINGS AND AVERAGE
-    while ( $row = $result->fetch_assoc() ) {
-        $comment_id = $row['comment_id'];
-        $rating     = $row['rating'];
-        $total      = $total + $row['rating'];
+        // ITERATE THROUGHT THE COMMENT LIBRRARIES AND INSERT THE RATINGS
+        foreach ( $comments as $key => $value ) {
+            $commentID = $comments[$key]['id'];
+            $comments[$key]['ratings'] = $ratings[$commentID];
+        }
 
-        $ratings[$comment_id] = $rating;
+        $data['data']['average'] = $total / count($comments);
+        
+        $data['data'][$trimFieldName] = $comments;
+
+        return $data;
+
     }
 
-    // ITERATE THROUGHT THE COMMENT LIBRRARIES AND INSERT THE RATINGS
-    foreach ( $comments as $key => $value ) {
-        $comment_id = $comments[$key]['id'];
-        $comments[$key]['ratings'] = $ratings[$comment_id];
+    public function getAdditionalPageField($page, $fields) {
+        $data = array();
+
+        foreach ($fields as $field) {
+            $data[$field] = $page->$field;
+        }
+
+        return $data;
     }
-
-    $data['data']['average'] = $total / count($comments);
-    
-    $data['data'][$trim_field_name] = $comments;
-
-    return $data;
-
-}
-
-function getAdditionalPageField($page, $fields) {
-    
-    $data = array();
-
-    foreach ($fields as $field) {
-        $data[$field] = $page->$field;
-    }
-
-    return $data;
-
 }
 
 // GET API KEY SET ON ADMIN CONFIGURATION
@@ -243,20 +247,20 @@ elseif ( $input->urlSegment1 === $api->secret_key ) {
     if ( !$config->debug ) header('Content-type: application/json');
     
     // GET SET FIELD PREFIX
-    $field_prefix = $api->field_prefix;
+    $fieldPrefix = $api->field_prefix;
+
+    $webService = new WebService($fieldPrefix);
 
     // RESERVE WORD FOR HOME PAGE
     if ( $input->urlSegment2 === "home" ) {
         $page = $pages->get("/");
     } else {
-        $url = constructURL($urlSegments);
+        $url = $webService->constructURL($urlSegments);
         
         $page = $pages->get("$url");
     }
-
-    $page = pageToArray($page, $field_prefix, array('path'));
     
-    echo json_encode($page);
+    echo json_encode($webService->pageToArray($page, array('path')));
 } else {
     echo 'Invalid secret key';
 }
